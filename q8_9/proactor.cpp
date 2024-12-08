@@ -82,37 +82,33 @@ void Proactor::handleEvent(int fd) {
     }
 }
 
-proactorFunc threadFunc = nullptr;  // משתנה גלובלי שמצביע על פונקציית התהליכון
+proactorFunc threadFunc = nullptr;  
 
-// פונקציה שתעטוף את הקריאה ל-threadFunc ותמיר את ה-arg ממצביע ל-int
 void* threadFuncWrapper(void* arg) {
-    int sockfd = *static_cast<int*>(arg);  // המרת arg חזרה לערך int
-    delete static_cast<int*>(arg);         // שחרור זיכרון דינמי
+    int sockfd = *static_cast<int*>(arg);  
+    delete static_cast<int*>(arg);      
 
-    if (threadFunc != nullptr) {           // בדיקה אם הפונקציה הוגדרה
-        return threadFunc(sockfd);         // קריאה לפונקציה שהוגדרה ב-threadFunc
+    if (threadFunc != nullptr) {          
+        return threadFunc(sockfd);       
     }
 
     return nullptr;
 }
 
-// פונקציה שמתחילה את ה-Proactor בתהליכון חדש ומחזירה את מזהה ה-thread
 pthread_t startProactor(int sockfd, proactorFunc func) {
     pthread_t tid;
-    int* sockfdPtr = new int(sockfd);       // הקצאת זיכרון דינמית ל-sockfd
-    threadFunc = func;                      // עדכון המשתנה הגלובלי בפונקציה שהתקבלה כפרמטר
+    int* sockfdPtr = new int(sockfd);  
+    threadFunc = func;                     
 
-    // יצירת התהליכון החדש עם פונקציית ה-wrapper והעברת המצביע ל-sockfd
     if (pthread_create(&tid, nullptr, threadFuncWrapper, sockfdPtr) != 0) {
         std::cerr << "Failed to create proactor thread" << std::endl;
-        delete sockfdPtr;                   // שחרור הזיכרון אם יצירת התהליכון נכשלה
+        delete sockfdPtr;                
         return 0;
     }
 
     return tid;
 }
 
-// פונקציה שעוצרת את ה-Proactor לפי ה-thread id
 int stopProactor(pthread_t tid) {
     return pthread_cancel(tid);
 }
